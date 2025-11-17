@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Jam E-Commerce{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6">
+            <img src="{{ product.image }}" alt="{{ product.name }}" class="img-fluid rounded shadow">
+        </div>
+        <div class="col-md-6">
+            <h2>{{ product.name }}</h2>
+            <p class="text-muted">{{ product.description }}</p>
+            <h4 class="text-primary">${{ product.price }}</h4>
+            <div class="mt-4">
+                {% if product.status == "out-of-stock" %}
+                    <button class="btn btn-secondary" disabled>
+                        Out of Stock
+                    </button>
+                {% else %}
+                    <button class="btn btn-primary add-to-cart-btn" data-id="{{ product.id }}">
+                        Add to Cart
+                    </button>
+                {% endif %}
+                <span id="product-message" class="text-success ms-3 d-none">Added to cart successfully!</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize cart count
+    let cartCount = parseInt(localStorage.getItem('cartCount')) || 0;
+
+    // Update cart counter
+    function updateCartCounter() {
+        const cartLink = document.getElementById('cart-link');
+        if (cartLink) {
+            cartLink.textContent = `🛒 Cart (${cartCount})`;
+        }
+    }
+
+    updateCartCounter();
+
+    // Add to Cart button
+    const btn = document.querySelector('.add-to-cart-btn');
+    btn.addEventListener('click', () => {
+        const productId = btn.getAttribute('data-id');
+
+        fetch('{{ url_for("main.add_to_cart") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: productId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            cartCount = data.cartCount;
+            localStorage.setItem('cartCount', cartCount);
+            updateCartCounter();
+
+            const msg = document.getElementById('product-message');
+            msg.classList.remove('d-none');
+            setTimeout(() => { msg.classList.add('d-none'); }, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}

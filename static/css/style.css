@@ -1,0 +1,15 @@
+/* Custom Styles for Jam E-Commerce */
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  letter-spacing: 0.5px;
+}
+
+.card:hover {
+  transform: scale(1.02);
+  transition: all 0.3s ease-in-out;
+}

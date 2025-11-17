@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Oops! Page Not Found - Jam E-Commerce{% endblock %}
+
+{% block content %}
+<div class="container text-center my-5">
+    <img src="{{ url_for('static', filename='images/jam-404.png') }}" 
+         alt="Jam jar spilled" class="img-fluid mb-4" style="max-width: 300px;">
+    <h1 class="display-4 text-danger">404</h1>
+    <h2>Uh-oh! This page is missing like a jar of jam!</h2>
+    <p class="lead">Looks like someone snatched it. Don’t worry, we have plenty more!</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">Go Back Home</a>
+</div>
+{% endblock %}

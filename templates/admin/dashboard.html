@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Admin Dashboard</h2>
+        <a href="{{ url_for('admin.logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row g-4">
+
+        <!-- Total Orders -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body text-center py-4">
+                    <h4 class="fw-bold">📦 Orders</h4>
+                    <p class="fs-3 fw-bold text-primary">{{ total_orders }}</p>
+                    <a href="{{ url_for('admin.view_orders') }}" class="btn btn-outline-primary btn-sm">
+                        View Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Customers -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body text-center py-4">
+                    <h4 class="fw-bold">👤 Customers</h4>
+                    <p class="fs-3 fw-bold text-success">{{ total_customers }}</p>
+                    <a href="{{ url_for('admin.view_customers') }}" class="btn btn-outline-success btn-sm">
+                        View Customers
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Products -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-body text-center py-4">
+                    <h4 class="fw-bold">🛒 Products</h4>
+                    <p class="fs-3 fw-bold text-warning">{{ total_products }}</p>
+                    <a href="{{ url_for('admin.manage_products') }}" class="btn btn-outline-warning btn-sm">
+                        Manage Products
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Management Section -->
+    <div class="mt-5">
+        <h4 class="fw-bold mb-3">Quick Actions</h4>
+
+        <div class="list-group shadow-sm">
+
+            <a href="{{ url_for('admin.add_product') }}" class="list-group-item list-group-item-action py-3">
+                ➕ Add New Product
+            </a>
+
+            <a href="{{ url_for('admin.view_orders') }}" class="list-group-item list-group-item-action py-3">
+                📑 View All Orders
+            </a>
+
+            <a href="{{ url_for('admin.view_customers') }}" class="list-group-item list-group-item-action py-3">
+                👥 View All Customers
+            </a>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

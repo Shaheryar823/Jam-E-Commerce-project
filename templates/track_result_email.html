@@ -1,0 +1,25 @@
+
+{% extends "base.html" %}
+{% block title %}Order Successful{% endblock %}
+
+{% block content %}
+<h2>Your Orders</h2>
+<p>Email: <strong>{{ email }}</strong></p>
+
+{% for order in orders %}
+<div class="order-box">
+    <p><strong>Order ID:</strong> {{ order.id }}</p>
+    <p><strong>Status:</strong> {{ order.status }}</p>
+    <p><strong>Date:</strong> {{ order.datetime }}</p>
+    <p><strong>Total:</strong> Rs {{ order.total }}</p>
+
+    <h4>Items:</h4>
+    <ul>
+        {% for item in order['items'] %}
+            <li>{{ item.name }} — {{ item.quantity }} × Rs {{ item.price }}</li>
+        {% endfor %}
+    </ul>
+    <hr>
+</div>
+{% endfor %}
+{% endblock %}

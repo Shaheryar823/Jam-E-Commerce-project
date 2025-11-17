@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Your Cart - Jam E-Commerce{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4 text-center">Your Cart</h1>
+    <div class="row">
+        <!-- Cart Items -->
+        <div class="col-md-8">
+            {% if cart_products %}
+                {% for item in cart_products %}
+                <div class="card mb-3">
+                    <div class="row g-0 align-items-center">
+                        <div class="col-md-4">
+                            <img src="{{ item.image }}" class="img-fluid rounded-start" alt="{{ item.name }}">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.name }}</h5>
+                                <p class="card-text">${{ item.price }}</p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <button class="btn btn-sm btn-outline-secondary me-2 decrease-btn" data-id="{{ item.id }}">-</button>
+                                    <span class="quantity" id="qty-{{ item.id }}">{{item.quantity}}</span>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2 increase-btn" data-id="{{ item.id }}">+</button>
+                                </div>
+                                <button class="btn btn-danger btn-sm remove-btn" data-id="{{ item.id }}">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>Your cart is empty.</p>
+            {% endif %}
+        </div>
+
+        <!-- Bill Section -->
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm">
+                <h4>Order Summary</h4>
+                <hr>
+                <p>Total Items: <span id="total-items">{{total_qty}}</span></p>
+                <p>Total Price: $<span id="total-price">{{total}}</span></p>
+                <a href="#" id="checkout-btn" class="btn btn-primary w-100 mt-3">Proceed to Checkout</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

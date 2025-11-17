@@ -1,0 +1,74 @@
+[
+    {
+        "id": 1,
+        "name": "Strawberry Jam",
+        "description": "Classic homemade strawberry jam made with fresh garden strawberries.",
+        "price": 5.99,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 2,
+        "name": "Blueberry Jam",
+        "description": "Rich and tangy blueberry jam perfect for pancakes or toast.",
+        "price": 6.49,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 3,
+        "name": "Mango Jam",
+        "description": "Tropical mango jam with a smooth, golden texture and vibrant aroma.",
+        "price": 7.99,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 4,
+        "name": "Apricot Jam",
+        "description": "Sweet and slightly tart jam made from handpicked apricots.",
+        "price": 6.75,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 5,
+        "name": "Raspberry Jam",
+        "description": "Vibrant red raspberry jam bursting with natural fruit flavor.",
+        "price": 6.99,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 6,
+        "name": "Peach Jam",
+        "description": "Golden peach jam that tastes like summer mornings in a jar.",
+        "price": 6.25,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 7,
+        "name": "Blackberry Jam",
+        "description": "Dark, rich blackberry jam with a deep forest berry flavor.",
+        "price": 7.49,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 8,
+        "name": "Pineapple Jam",
+        "description": "Tropical pineapple jam with a bright, tangy sweetness.",
+        "price": 5.75,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    },
+    {
+        "id": 9,
+        "name": "Mixed Berry Jam",
+        "description": "A perfect blend of strawberries, raspberries, and blueberries.",
+        "price": 7.25,
+        "image": "https://picsum.photos/id/102/200/150",
+        "status": "available"
+    }
+]

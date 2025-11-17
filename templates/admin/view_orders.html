@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <h2 class="mb-4">All Orders</h2>
+
+    {% if orders|length == 0 %}
+        <div class="alert alert-warning">No orders found.</div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Customer</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Placed On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.user.name }}</td>
+                        <td>Rs {{ order.total }}</td>
+
+                        <td>
+                            <span class="badge bg-info">
+                                {{ order.status|capitalize }}
+                            </span>
+                        </td>
+
+                        <td>{{ order.datetime }}</td>
+
+                        <td>
+                            <a href="{{ url_for('admin.order_details', oid=order.id) }}"
+                               class="btn btn-sm btn-primary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

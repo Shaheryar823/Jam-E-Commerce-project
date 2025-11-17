@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <a href="{{ url_for('admin.view_customers') }}" class="btn btn-secondary mb-3">
+        Back
+    </a>
+
+    <h2>Customer Details</h2>
+    <hr>
+
+    <h4>Profile</h4>
+    <ul>
+        <li><strong>Name:</strong> {{ customer.name }}</li>
+        <li><strong>Email:</strong> {{ customer.email }}</li>
+        <li><strong>Phone:</strong> {{ customer.phone }}</li>
+        <li><strong>Total Orders:</strong> {{ customer.total_orders }}</li>
+    </ul>
+
+    <hr>
+    <h4>Orders by {{ customer.name }}</h4>
+
+    {% if orders|length == 0 %}
+        <div class="alert alert-warning">This customer has not placed any orders yet.</div>
+    {% else %}
+        <table class="table table-bordered mt-3">
+            <thead class="table-light">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>View</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for o in orders %}
+                <tr>
+                    <td>{{ o.id }}</td>
+                    <td>Rs {{ o.total }}</td>
+
+                    <td>
+                        <span class="badge bg-info">
+                            {{ o.status }}
+                        </span>
+                    </td>
+
+                    <td>{{ o.datetime }}</td>
+
+                    <td>
+                        <a href="{{ url_for('admin.order_details', oid=o.id) }}" 
+                           class="btn btn-sm btn-primary">
+                           View Order
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    {% endif %}
+
+</div>
+
+{% endblock %}
