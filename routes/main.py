@@ -1,22 +1,21 @@
 from flask import Blueprint, render_template, url_for, session, request, jsonify, flash,redirect
 import json, os
 from datetime import datetime
+from managers.product_manager import ProductManager
+
 
 
 main_bp = Blueprint('main', __name__)
 
 # Load products from JSON file once when app starts
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PRODUCTS_FILE = os.path.join(BASE_DIR, '../data/products.json')
 ORDERS_FILE = os.path.join(BASE_DIR, '../data/orders.json')
 CUSTOMERS_FILE = os.path.join(BASE_DIR, '../data/customers.json')
-
-with open(PRODUCTS_FILE, 'r') as f:
-    products = json.load(f)
+ProductManager.load_products()
 
 @main_bp.route('/')
 def index():
-    return render_template('index.html', products=products)
+    return render_template('index.html', products=ProductManager.get_all())
 
 
 @main_bp.route('/add_to_cart', methods=['POST'])
@@ -38,7 +37,7 @@ def add_to_cart():
 @main_bp.route('/product/<int:pid>')
 def product_page(pid):
     # Find the product by ID
-    product = next((p for p in products if p["id"] == pid), None)
+    product = ProductManager.get(pid)
     if not product:
         return "Product not found", 404
 
@@ -53,7 +52,7 @@ def cart():
     total = 0
     total_qty = 0
 
-    for p in products:
+    for p in ProductManager.get_all():
         qty = cart_items.get(str(p["id"]), 0)
         if qty > 0:
             cart_products.append({
@@ -94,7 +93,7 @@ def update_cart():
     # Recalculate totals
     total = 0
     total_qty = 0
-    for p in products:
+    for p in ProductManager.get_all():
         if str(p["id"]) in session['cart']:
             qty = session['cart'][str(p["id"])]
             total += p["price"] * qty
@@ -123,7 +122,7 @@ def remove_item():
     # Recalculate totals
     total = 0
     total_qty = 0
-    for p in products:
+    for p in ProductManager.get_all():
         if str(p["id"]) in session.get('cart', {}):
             qty = session['cart'][str(p["id"])]
             total += p["price"] * qty
@@ -174,7 +173,7 @@ def checkout_details():
         cart_products = []
         total = 0
 
-        for p in products:
+        for p in ProductManager.get_all():
             qty = cart_items.get(str(p["id"]), 0)
             if qty > 0:
                 item_total = round(p["price"] * qty, 2)
