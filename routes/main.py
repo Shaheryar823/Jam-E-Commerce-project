@@ -1,161 +1,105 @@
-from flask import Blueprint, render_template, url_for, session, request, jsonify, flash,redirect
-import json, os
+from flask import Blueprint, render_template, url_for, session, request, jsonify, flash, redirect
 from managers.product_manager import ProductManager
 from managers.order_manager import OrderManager
 from managers.customer_manager import CustomerManager
-
-
-
+from managers.cart_manager import CartManager
+from utils.email_utils import send_email
 
 main_bp = Blueprint('main', __name__)
 
-# Load products from JSON file once when app starts
+# Load data on app startup
 OrderManager.load_orders()
 ProductManager.load_products()
 CustomerManager.load_customers()
 
+
+# ---------------------------
+# Home / Index
+# ---------------------------
 @main_bp.route('/')
 def index():
     return render_template('index.html', products=ProductManager.get_all())
+
+
+# ---------------------------
+# Product page
+# ---------------------------
+@main_bp.route('/product/<int:pid>')
+def product_page(pid):
+    product = ProductManager.get(pid)
+    if not product:
+        return "Product not found", 404
+    return render_template('product_page.html', product=product)
+
+
+# ---------------------------
+# Cart routes
+# ---------------------------
+@main_bp.route('/cart')
+def cart():
+    cart = CartManager.get_cart(session)
+    cart_products, total, total_qty = CartManager.build_cart_details(cart)
+    return render_template('cart.html', cart_products=cart_products, total=total, total_qty=total_qty)
 
 
 @main_bp.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     data = request.get_json()
     product_id = str(data.get('id'))
-
-    if 'cart' not in session:
-        session['cart'] = {}
-
-    # Add 1 to quantity
-    session['cart'][product_id] = session['cart'].get(product_id, 0) + 1
-    session.modified = True
-
-    # Return total quantity in cart
-    total_items = sum(session['cart'].values())
+    CartManager.add_to_cart(session, product_id)
+    total_items = CartManager.get_total_qty(session)
     return jsonify({"message": "Added to cart successfully!", "cartCount": total_items})
 
-@main_bp.route('/product/<int:pid>')
-def product_page(pid):
-    # Find the product by ID
-    product = ProductManager.get(pid)
-    if not product:
-        return "Product not found", 404
-
-    return render_template('product_page.html', product=product)
-
-
-
-@main_bp.route('/cart')
-def cart():
-    cart_items = session.get('cart', {})  # {product_id: quantity}
-    cart_products = []
-    total = 0
-    total_qty = 0
-
-    for p in ProductManager.get_all():
-        qty = cart_items.get(str(p["id"]), 0)
-        if qty > 0:
-            cart_products.append({
-                "id": p["id"],
-                "name": p["name"],
-                "description": p["description"],
-                "price": p["price"],
-                "image": p["image"],
-                "quantity": qty,
-                "subtotal": round(p["price"] * qty, 2)
-            })
-            total += p["price"] * qty
-            total_qty = total_qty + qty 
-
-    total = round(total, 2)  # round total to 2 decimal places
-    return render_template('cart.html', cart_products=cart_products, total=total, total_qty = total_qty)
 
 @main_bp.route('/update_cart', methods=['POST'])
 def update_cart():
     data = request.get_json()
-    pid = str(data.get('id'))
+    product_id = str(data.get('id'))
     action = data.get('action')
+    CartManager.update_cart(session, product_id, action)
 
-    if 'cart' not in session:
-        session['cart'] = {}
+    cart_products, total, total_qty = CartManager.build_cart_details(session.get('cart', {}))
+    qty = session['cart'].get(product_id, 0)
 
-    if pid in session['cart']:
-        if action == 'increase':
-            session['cart'][pid] += 1
-        elif action == 'decrease':
-            session['cart'][pid] = max(1, session['cart'][pid] - 1)
-    else:
-        if action == 'increase':
-            session['cart'][pid] = 1
-
-    session.modified = True
-
-    # Recalculate totals
-    total = 0
-    total_qty = 0
-    for p in ProductManager.get_all():
-        if str(p["id"]) in session['cart']:
-            qty = session['cart'][str(p["id"])]
-            total += p["price"] * qty
-            total_qty += qty
-
-    # Return also the updated quantity for this product
     return jsonify({
         "success": True,
-        "total": round(total, 2),
+        "total": total,
         "total_qty": total_qty,
-        "qty": session['cart'][pid]
+        "qty": qty
     })
 
 
-
-# Remove an item from cart
 @main_bp.route('/remove_item', methods=['POST'])
 def remove_item():
     data = request.get_json()
-    pid = str(data.get('id'))
+    product_id = str(data.get('id'))
+    CartManager.remove_item(session, product_id)
 
-    if 'cart' in session and pid in session['cart']:
-        session['cart'].pop(pid)
-        session.modified = True
+    cart_products, total, total_qty = CartManager.build_cart_details(session.get('cart', {}))
+    return jsonify({"success": True, "total": total, "total_qty": total_qty})
 
-    # Recalculate totals
-    total = 0
-    total_qty = 0
-    for p in ProductManager.get_all():
-        if str(p["id"]) in session.get('cart', {}):
-            qty = session['cart'][str(p["id"])]
-            total += p["price"] * qty
-            total_qty += qty
-
-    return jsonify({"success": True, "total": round(total, 2), "total_qty": total_qty})
 
 @main_bp.route('/cart_count')
 def cart_count():
-    cart = session.get('cart', {})  # {product_id: quantity}
-    total_qty = sum(cart.values()) if isinstance(cart, dict) else 0
+    total_qty = CartManager.get_total_qty(session)
     return jsonify({"count": total_qty})
 
 
-# Checkout (AJAX - step 1)
+# ---------------------------
+# Checkout
+# ---------------------------
 @main_bp.route('/checkout', methods=['POST'])
 def checkout():
-    cart_items = session.get('cart', {})
-    if not cart_items:
+    cart = CartManager.get_cart(session)
+    if not cart:
         return jsonify({"success": False, "message": "Your cart is empty."}), 400
-
-    # Redirect user to the checkout form
     return jsonify({"success": True, "redirect": url_for('main.checkout_details')})
 
 
 @main_bp.route('/checkout/details', methods=['GET', 'POST'])
 def checkout_details():
     if request.method == 'POST':
-
-        # ---------------------------
         # 1. Collect user data
-        # ---------------------------
         user_data = {
             "name": request.form.get('name'),
             "email": request.form.get('email'),
@@ -163,100 +107,72 @@ def checkout_details():
             "address": request.form.get('address'),
         }
 
-        # Ensure cart is not empty
-        cart_items = session.get('cart', {})
-        if not cart_items:
+        cart = CartManager.get_cart(session)
+        if not cart:
             flash("Your cart is empty.", "warning")
             return redirect(url_for('main.cart'))
 
-        # ---------------------------
         # 2. Build cart product list
-        # ---------------------------
-        cart_products = []
-        total = 0
+        cart_products, total, total_qty = CartManager.build_cart_details(cart)
 
-        for p in ProductManager.get_all():
-            qty = cart_items.get(str(p["id"]), 0)
-            if qty > 0:
-                subtotal = round(p["price"] * qty, 2)
-                cart_products.append({
-                    "id": p["id"],
-                    "name": p["name"],
-                    "price": p["price"],
-                    "quantity": qty,
-                    "subtotal": subtotal
-                })
-                total += subtotal
-
-        # ---------------------------
-        # 3. Create order (OrderManager)
-        # ---------------------------
-        order = OrderManager.add_order(
-            user_data=user_data,
-            items=cart_products,
-            total=total
-        )
+        # 3. Create order
+        order = OrderManager.add_order(user_data=user_data, items=cart_products, total=total)
         order_id = order["id"]
 
-        # ---------------------------
-        # 4. Update customer (CustomerManager)
-        # ---------------------------
+        # 4. Update customer
         CustomerManager.add_or_update_customer(user_data, order_id)
 
-        # ---------------------------
         # 5. Clear cart + save user session
-        # ---------------------------
+        CartManager.clear_cart(session)
         session['user_info'] = user_data
-        session.pop('cart', None)
         session.modified = True
 
-        # ---------------------------
         # 6. Send confirmation email
-        # ---------------------------
-        from utils.email_utils import send_email
         send_email(
             to=user_data["email"],
             subject="Your Order Has Been Placed",
             message=f"""
-                    Dear {user_data['name']},
+Dear {user_data['name']},
 
-                    Thank you for your order!
-                    Your order ID is {order_id}.
+Thank you for your order!
+Your order ID is {order_id}.
 
-                    We will notify you when the status updates.
+We will notify you when the status updates.
 
-                    Regards,
-                    Jams Store
-                                """)
+Regards,
+Jams Store
+""")
 
         return redirect(url_for('main.checkout_success'))
 
-    # If GET
+    # GET request
     return render_template('checkout_details.html')
 
 
-
-
-# Checkout success (step 3)
+# ---------------------------
+# Checkout success
+# ---------------------------
 @main_bp.route('/checkout/success')
 def checkout_success():
     user = session.get('user_info', {})
     return render_template('success.html', user=user)
 
+
+# ---------------------------
+# Order tracking
+# ---------------------------
 @main_bp.route('/track', methods=['GET', 'POST'])
 def track_order():
     if request.method == "POST":
         email = request.form.get("email").strip().lower()
         return redirect(url_for("main.track_by_email", email=email))
-
     return render_template("track_order.html")
+
 
 @main_bp.route('/track/email/<email>')
 def track_by_email(email):
     email = email.lower()
     user_orders = OrderManager.get_by_email(email)
-
     if not user_orders:
         return render_template("track_not_found.html", email=email)
-
     return render_template("track_result_email.html", orders=user_orders, email=email)
