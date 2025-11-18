@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, url_for, session, request, jsonify
 import json, os
 from managers.product_manager import ProductManager
 from managers.order_manager import OrderManager
+from managers.customer_manager import CustomerManager
 
 
 
@@ -9,10 +10,9 @@ from managers.order_manager import OrderManager
 main_bp = Blueprint('main', __name__)
 
 # Load products from JSON file once when app starts
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CUSTOMERS_FILE = os.path.join(BASE_DIR, '../data/customers.json')
 OrderManager.load_orders()
 ProductManager.load_products()
+CustomerManager.load_customers()
 
 @main_bp.route('/')
 def index():
@@ -149,10 +149,13 @@ def checkout():
     return jsonify({"success": True, "redirect": url_for('main.checkout_details')})
 
 
-# Checkout details (form - step 2)
 @main_bp.route('/checkout/details', methods=['GET', 'POST'])
 def checkout_details():
     if request.method == 'POST':
+
+        # ---------------------------
+        # 1. Collect user data
+        # ---------------------------
         user_data = {
             "name": request.form.get('name'),
             "email": request.form.get('email'),
@@ -160,87 +163,77 @@ def checkout_details():
             "address": request.form.get('address'),
         }
 
+        # Ensure cart is not empty
         cart_items = session.get('cart', {})
         if not cart_items:
             flash("Your cart is empty.", "warning")
             return redirect(url_for('main.cart'))
 
+        # ---------------------------
+        # 2. Build cart product list
+        # ---------------------------
         cart_products = []
         total = 0
 
         for p in ProductManager.get_all():
             qty = cart_items.get(str(p["id"]), 0)
             if qty > 0:
-                item_total = round(p["price"] * qty, 2)
+                subtotal = round(p["price"] * qty, 2)
                 cart_products.append({
                     "id": p["id"],
                     "name": p["name"],
                     "price": p["price"],
                     "quantity": qty,
-                    "subtotal": item_total
+                    "subtotal": subtotal
                 })
-                total += item_total
+                total += subtotal
 
-        # ---------------------------------------
-        # save and Load current orders to calculate next ID
-        # ---------------------------------------
-        next_id = OrderManager.add_order(user_data, cart_products, total)['id']
+        # ---------------------------
+        # 3. Create order (OrderManager)
+        # ---------------------------
+        order = OrderManager.add_order(
+            user_data=user_data,
+            items=cart_products,
+            total=total
+        )
+        order_id = order["id"]
 
-        # -------------------------------------------
-        #  SAVE / UPDATE CUSTOMER FILE
-        # -------------------------------------------
+        # ---------------------------
+        # 4. Update customer (CustomerManager)
+        # ---------------------------
+        CustomerManager.add_or_update_customer(user_data, order_id)
 
-        # Load existing customers
-        try:
-            with open(CUSTOMERS_FILE, 'r') as cf:
-                customers = json.load(cf)
-        except FileNotFoundError:
-            customers = []
-
-        # Check if customer already exists (match by email)
-        existing_customer = next((c for c in customers if c["email"] == user_data["email"]), None)
-
-        if existing_customer:
-            # ⭐ Customer exists → add current order ID into their record
-            existing_customer["orders"].append(next_id)
-
-        else:
-            # ⭐ New customer → create new entry
-            new_customer_id = (customers[0]["id"] + 1) if customers else 1
-
-            new_customer = {
-                "id": new_customer_id,
-                "name": user_data["name"],
-                "email": user_data["email"],
-                "phone": user_data["phone"],
-                "address": user_data["address"],
-                "orders": [next_id]
-            }
-
-            customers.insert(0, new_customer)
-
-        # Save customer file
-        with open(CUSTOMERS_FILE, 'w') as cf:
-            json.dump(customers, cf, indent=4)
-
-
+        # ---------------------------
+        # 5. Clear cart + save user session
+        # ---------------------------
         session['user_info'] = user_data
         session.pop('cart', None)
         session.modified = True
 
+        # ---------------------------
+        # 6. Send confirmation email
+        # ---------------------------
         from utils.email_utils import send_email
-
-        # After placing order
         send_email(
             to=user_data["email"],
             subject="Your Order Has Been Placed",
-            message=f"Dear {user_data['name']},\n\nThank you for your order!\nYour order ID is {next_id}.\n\nWe will update you when your status changes.\n\nRegards,\nJams Store"
-        )
+            message=f"""
+                    Dear {user_data['name']},
 
+                    Thank you for your order!
+                    Your order ID is {order_id}.
+
+                    We will notify you when the status updates.
+
+                    Regards,
+                    Jams Store
+                                """)
 
         return redirect(url_for('main.checkout_success'))
 
+    # If GET
     return render_template('checkout_details.html')
+
 
 
 
