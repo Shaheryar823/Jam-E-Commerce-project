@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, url_for, session, request, jsonify, flash,redirect
 import json, os
-from datetime import datetime
 from managers.product_manager import ProductManager
+from managers.order_manager import OrderManager
+
 
 
 
@@ -9,8 +10,8 @@ main_bp = Blueprint('main', __name__)
 
 # Load products from JSON file once when app starts
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ORDERS_FILE = os.path.join(BASE_DIR, '../data/orders.json')
 CUSTOMERS_FILE = os.path.join(BASE_DIR, '../data/customers.json')
+OrderManager.load_orders()
 ProductManager.load_products()
 
 @main_bp.route('/')
@@ -137,12 +138,6 @@ def cart_count():
     return jsonify({"count": total_qty})
 
 
-# Make sure orders.json exists
-if not os.path.exists(ORDERS_FILE):
-    with open(ORDERS_FILE, 'w') as f:
-        json.dump([], f)
-
-
 # Checkout (AJAX - step 1)
 @main_bp.route('/checkout', methods=['POST'])
 def checkout():
@@ -187,29 +182,9 @@ def checkout_details():
                 total += item_total
 
         # ---------------------------------------
-        # Load current orders to calculate next ID
+        # save and Load current orders to calculate next ID
         # ---------------------------------------
-        with open(ORDERS_FILE, 'r') as f:
-            existing_orders = json.load(f)
-
-        next_id = (existing_orders[0]["id"] + 1) if existing_orders else 1   # 🔥 Add order ID
-
-        order_data = {
-            "id": next_id,                                # 🔥 ADD THIS
-            "user": user_data,
-            "items": cart_products,
-            "total": round(total, 2),
-            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "status": "Pending"                           # 🔥 ADD THIS
-        }
-
-        # Save new order at top of list
-        with open(ORDERS_FILE, 'r+') as f:
-            data = json.load(f)
-            data.insert(0, order_data)
-            f.seek(0)
-            json.dump(data, f, indent=4)
-            f.truncate()
+        next_id = OrderManager.add_order(user_data, cart_products, total)['id']
 
         # -------------------------------------------
         #  SAVE / UPDATE CUSTOMER FILE
@@ -286,19 +261,7 @@ def track_order():
 @main_bp.route('/track/email/<email>')
 def track_by_email(email):
     email = email.lower()
-
-    # Load orders file
-    try:
-        with open(ORDERS_FILE, 'r') as f:
-            orders = json.load(f)
-    except:
-        orders = []
-
-    # Filter orders by email
-    user_orders = [
-        o for o in orders
-        if o.get("user", {}).get("email", "").lower() == email
-    ]
+    user_orders = OrderManager.get_by_email(email)
 
     if not user_orders:
         return render_template("track_not_found.html", email=email)

@@ -1,1 +1,22 @@
-[]
+[
+    {
+        "id": 2,
+        "name": "Shaharyar Ali",
+        "email": "shaheryarali047@gmail.com",
+        "phone": "03155337759",
+        "address": "Singay Home Stay, VIP Colony Road Olding, Skardu",
+        "orders": [
+            2
+        ]
+    },
+    {
+        "id": 1,
+        "name": "example",
+        "email": "example@gmail.com",
+        "phone": "03000000000",
+        "address": "example road example house",
+        "orders": [
+            1
+        ]
+    }
+]
