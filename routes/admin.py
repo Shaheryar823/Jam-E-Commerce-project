@@ -3,12 +3,12 @@ from functools import wraps
 import json
 import os
 from werkzeug.security import check_password_hash, generate_password_hash
-
+from managers.product_manager import ProductManager
 
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
-
+ProductManager.load_products()
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -69,7 +69,7 @@ def login():
 def dashboard():
     orders = load_data("orders.json")
     customers = load_data("customers.json")
-    products = load_data("products.json")
+    products = ProductManager.get_all()
 
     return render_template(
         'admin/dashboard.html',
@@ -168,7 +168,7 @@ def customer_details(cid):
 @admin_bp.route('/products')
 @admin_required
 def manage_products():
-    products = load_data("products.json")
+    products = ProductManager.get_all()
     return render_template("admin/manage_products.html", products=products)
 
 # -----------------------------
@@ -178,19 +178,16 @@ def manage_products():
 @admin_required
 def add_product():
     if request.method == "POST":
-        products = load_data("products.json")
+        products = ProductManager.get_all()
 
         new_product = {
-            "id": products[-1]["id"] + 1 if products else 1,
             "name": request.form.get("name"),
             "price": float(request.form.get("price")),
             "description": request.form.get("description"),
-            "image": request.form.get("image"),
-            "status": "available"
+            "image": request.form.get("image")
         }
 
-        products.append(new_product)
-        save_data("products.json", products)
+        ProductManager.add_product(new_product)
 
         return redirect(url_for("admin.manage_products"))
 
@@ -202,19 +199,21 @@ def add_product():
 @admin_bp.route('/products/edit/<int:pid>', methods=['GET', 'POST'])
 @admin_required
 def edit_product(pid):
-    products = load_data("products.json")
+    products = ProductManager.get_all()
     product = next((p for p in products if p["id"] == pid), None)
 
     if not product:
         return "Product not found"
 
     if request.method == "POST":
-        product["name"] = request.form.get("name")
-        product["price"] = float(request.form.get("price"))
-        product["description"] = request.form.get("description")
-        product["image"] = request.form.get("image")
+        new_product = {
+            "name": request.form.get("name"),
+            "price": float(request.form.get("price")),
+            "description": request.form.get("description"),
+            "image": request.form.get("image")
+        }
 
-        save_data("products.json", products)
+        ProductManager.update_product(pid, new_product)
         return redirect(url_for("admin.manage_products"))
 
     return render_template("admin/edit_product.html", product=product)
@@ -225,25 +224,22 @@ def edit_product(pid):
 @admin_bp.route('/products/delete/<int:pid>')
 @admin_required
 def delete_product(pid):
-    products = load_data("products.json")
-    products = [p for p in products if p["id"] != pid]
-    save_data("products.json", products)
+    ProductManager.delete_product(pid)
     return redirect(url_for("admin.manage_products"))
 
 # -----------------------------
 # TOGGLE PRODUCT STATUS
 # -----------------------------
-@admin_bp.route('/products/toggle/<pid>')
+@admin_bp.route('/products/toggle/<int:pid>')
 @admin_required
 def toggle_product(pid):
-    products = load_data("products.json")
+    product = ProductManager.get(pid)
+    if not product:
+        return "Product not found",404
+    
+    new_status = "available" if product.get("status") == "out-of-stock" else "out-of-stock"
 
-    for p in products:
-        if str(p["id"]) == str(pid):
-            p["status"] = "available" if p["status"] == "out-of-stock" else "out-of-stock"
-            break
-
-    save_data("products.json", products)
+    ProductManager.update_product(pid, {"status": new_status})
     return redirect(url_for("admin.manage_products"))
 
 # -----------------------------
