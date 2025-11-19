@@ -26,6 +26,15 @@ class CustomerManager:
             json.dump(cls.customers, f, indent=4)
 
     @classmethod
+    def get_all(cls):
+        return cls.customers
+
+    @classmethod
+    def get(cls, cid):
+        """Get a single customer by ID"""
+        return next((c for c in cls.customers if str(c["id"]) == str(cid)), None)
+
+    @classmethod
     def add_or_update_customer(cls, user_data, order_id):
         """
         Add a new customer or update existing one.

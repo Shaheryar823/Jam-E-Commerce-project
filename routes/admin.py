@@ -5,28 +5,16 @@ import os
 from werkzeug.security import check_password_hash, generate_password_hash
 from managers.product_manager import ProductManager
 from managers.order_manager import OrderManager
+from managers.customer_manager import CustomerManager
 
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
 ProductManager.load_products()
 OrderManager.load_orders()
+CustomerManager.load_customers()
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
-
-# -----------------------------
-# JSON HELPERS
-# -----------------------------
-def load_data(file):
-    try:
-        with open(f"data/{file}", "r") as f:
-            return json.load(f)
-    except:
-        return []
-
-def save_data(file, data):
-    with open(f"data/{file}", "w") as f:
-        json.dump(data, f, indent=4)
 
 # -----------------------------
 # ADMIN LOGIN CHECK DECORATOR
@@ -70,7 +58,7 @@ def login():
 @admin_required
 def dashboard():
     orders = OrderManager.get_all()
-    customers = load_data("customers.json")
+    customers = CustomerManager.get_all()
     products = ProductManager.get_all()
 
     return render_template(
@@ -131,7 +119,7 @@ def update_order_status(oid):
 @admin_bp.route('/customers')
 @admin_required
 def view_customers():
-    customers = load_data("customers.json")
+    customers = CustomerManager.get_all()
     return render_template("admin/view_customers.html", customers=customers)
 
 # -----------------------------
@@ -140,22 +128,20 @@ def view_customers():
 @admin_bp.route('/customers/<cid>')
 @admin_required
 def customer_details(cid):
-    customers = load_data("customers.json")
-    orders = OrderManager.get_all()
-
-    customer = next((c for c in customers if str(c["id"]) == str(cid)), None)
-
+    customer = CustomerManager.get(cid)
+    
     if not customer:
         return "Customer not found"
 
     customer_orders = [
-        o for o in orders if str(o["id"]) in str(customer['orders'])
+        OrderManager.get(order_id) for order_id  in customer['orders'] 
     ]
 
     return render_template(
         "admin/customer_details.html",
         customer=customer,
-        orders=customer_orders
+        orders=customer_orders,
+        total_orders = len(customer['orders'])
     )
 
 # -----------------------------
