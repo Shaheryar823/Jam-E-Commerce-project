@@ -51,3 +51,9 @@ class OrderManager:
     @classmethod
     def get_by_email(cls, email):
         return [o for o in cls.orders if o.get("user", {}).get("email", "").lower() == email.lower()]
+    
+    @classmethod
+    def get(cls, oid):
+        return next((o for o in cls.orders if str(o["id"]) == str(oid)), None)
+
+

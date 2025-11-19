@@ -4,11 +4,13 @@ import json
 import os
 from werkzeug.security import check_password_hash, generate_password_hash
 from managers.product_manager import ProductManager
+from managers.order_manager import OrderManager
 
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv("ADMIN_PASSWORD"))
 ProductManager.load_products()
+OrderManager.load_orders()
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -67,7 +69,7 @@ def login():
 @admin_bp.route('/')
 @admin_required
 def dashboard():
-    orders = load_data("orders.json")
+    orders = OrderManager.get_all()
     customers = load_data("customers.json")
     products = ProductManager.get_all()
 
@@ -84,7 +86,7 @@ def dashboard():
 @admin_bp.route('/orders')
 @admin_required
 def view_orders():
-    orders = load_data("orders.json")
+    orders = OrderManager.get_all()
     return render_template('admin/view_orders.html', orders=orders)
 
 # -----------------------------
@@ -93,8 +95,7 @@ def view_orders():
 @admin_bp.route('/orders/<int:oid>')
 @admin_required
 def order_details(oid):
-    orders = load_data("orders.json")
-    order = next((o for o in orders if o["id"] == oid), None)
+    order = OrderManager.get(oid)
 
     if not order:
         return "Order not found", 404
@@ -109,21 +110,16 @@ def order_details(oid):
 def update_order_status(oid):
     new_status = request.form.get("status")
 
-    orders = load_data("orders.json")
+    order = OrderManager.get(oid)
+    order["status"] = new_status
 
-    for o in orders:
-        if str(o["id"]) == str(oid):
-            o["status"] = new_status
-            break
-
-    save_data("orders.json", orders)
-
+    OrderManager.save_orders()
     from utils.email_utils import send_email
 
     send_email(
-        to=o["user"]["email"],
+        to=order["user"]["email"],
         subject="Order Status Updated",
-        message=f"Hello {o['user']['name']},\n\nYour order #{oid} status has been updated to: {new_status}.\n\nThank you for shopping with us!"
+        message=f"Hello {order['user']['name']},\n\nYour order #{oid} status has been updated to: {new_status}.\n\nThank you for shopping with us!"
     )
 
 
@@ -145,7 +141,7 @@ def view_customers():
 @admin_required
 def customer_details(cid):
     customers = load_data("customers.json")
-    orders = load_data("orders.json")
+    orders = OrderManager.get_all()
 
     customer = next((c for c in customers if str(c["id"]) == str(cid)), None)
 
